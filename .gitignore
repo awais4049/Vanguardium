@@ -1,0 +1,25 @@
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+*.egg-info/
+
+# Node
+node_modules/
+dist/
+build/
+
+# Environment secrets
+.env
+*.env.local
+
+# Data
+data/*.csv
+data/**/*.csv
+data/**/*.zip
+
+# OS/editor junk
+.DS_Store
+.vscode/
+.idea/
