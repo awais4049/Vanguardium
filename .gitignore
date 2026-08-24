@@ -23,3 +23,5 @@ data/**/*.zip
 .DS_Store
 .vscode/
 .idea/
+data/captured_traffic/
+
