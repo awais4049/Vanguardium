@@ -45,6 +45,8 @@ ADMIN_PATH_PATTERN = re.compile(r"^/administration/?$", re.IGNORECASE)
 SECURITY_QUESTION_PATTERN = re.compile(r"/rest/user/security-question", re.IGNORECASE)
 IDOR_PATH_PATTERN = re.compile(r"/(basket|api/users|api/orders|profile)/\d+", re.IGNORECASE)
 NUMERIC_ID_PATTERN = re.compile(r"/(\d+)(?:/|$)")
+BRUTE_FORCE_PATH_PATTERN = re.compile(r"/vulnerabilities/brute", re.IGNORECASE)
+LOGIN_PATH_PATTERN = re.compile(r"^/rest/user/login$", re.IGNORECASE)
 
 # Non-target domains to exclude from benign counts (browser/OS telemetry,
 # not traffic to your actual target apps). Extend this list if new noise
@@ -171,11 +173,15 @@ def extract_features(flow: dict) -> dict:
 
 def label_flow(row: dict) -> str:
     """Heuristic first-pass label. REVIEW MANUALLY before training."""
-    if row["has_sql_keywords"]:
-        return "sqli"
     if row["has_script_tags"]:
         return "xss"
+    if row["has_sql_keywords"]:
+        return "sqli"
     if row["is_admin_path"] or SECURITY_QUESTION_PATTERN.search(row["_path"]):
+        return "broken_auth"
+    if BRUTE_FORCE_PATH_PATTERN.search(row["_path"]):
+        return "broken_auth"
+    if LOGIN_PATH_PATTERN.search(row["_path"]) and row.get("status_code") in (401, 403):
         return "broken_auth"
     if IDOR_PATH_PATTERN.search(row["_path"]) and row["method"] in ("GET", "PUT", "DELETE"):
         # Only flag as IDOR if we can confirm the requester's own session
