@@ -1,0 +1,1 @@
+["duration_ms", "response_size", "body_length", "status_code", "path_depth", "num_query_params", "num_headers", "special_char_ratio", "payload_entropy", "numeric_id_in_path", "sql_keyword_count", "method_GET", "method_POST", "method_PUT"]

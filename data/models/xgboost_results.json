@@ -1,0 +1,74 @@
+{
+  "model": "XGBoost (multi:softprob)",
+  "params": {
+    "n_estimators": 200,
+    "max_depth": 6,
+    "learning_rate": 0.1
+  },
+  "features": [
+    "duration_ms",
+    "response_size",
+    "body_length",
+    "status_code",
+    "path_depth",
+    "num_query_params",
+    "num_headers",
+    "special_char_ratio",
+    "payload_entropy",
+    "numeric_id_in_path",
+    "sql_keyword_count",
+    "method_GET",
+    "method_POST",
+    "method_PUT"
+  ],
+  "test_weighted_f1": 0.9723004938015816,
+  "test_macro_f1": 0.9642298260137274,
+  "cv10_macro_f1_mean": 0.9673381099853531,
+  "cv10_macro_f1_std": 0.021372977089044513,
+  "classification_report": {
+    "benign": {
+      "precision": 0.9846938775510204,
+      "recall": 0.9747474747474747,
+      "f1-score": 0.9796954314720813,
+      "support": 198.0
+    },
+    "broken_auth": {
+      "precision": 0.972972972972973,
+      "recall": 0.972972972972973,
+      "f1-score": 0.972972972972973,
+      "support": 37.0
+    },
+    "idor": {
+      "precision": 1.0,
+      "recall": 0.96,
+      "f1-score": 0.9795918367346939,
+      "support": 25.0
+    },
+    "sqli": {
+      "precision": 0.8484848484848485,
+      "recall": 0.9333333333333333,
+      "f1-score": 0.8888888888888888,
+      "support": 30.0
+    },
+    "xss": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1-score": 1.0,
+      "support": 30.0
+    },
+    "accuracy": 0.971875,
+    "macro avg": {
+      "precision": 0.9612303398017683,
+      "recall": 0.9682107562107563,
+      "f1-score": 0.9642298260137274,
+      "support": 320.0
+    },
+    "weighted avg": {
+      "precision": 0.9731997912801484,
+      "recall": 0.971875,
+      "f1-score": 0.9723004938015816,
+      "support": 320.0
+    }
+  },
+  "notes": "Heuristic-source features (has_sql_keywords, has_script_tags, is_cross_owner_basket_access, is_admin_path, has_auth_header) excluded to avoid label leakage. sql_keyword_count engineered as independent continuous signal. Hyperparameter tuning attempted (RandomizedSearchCV) but did not improve on manual params beyond CV noise (10-fold std ~0.021)."
+}
