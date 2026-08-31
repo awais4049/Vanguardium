@@ -1,0 +1,134 @@
+{
+  "model": "BiLSTM (2-layer bidirectional, class-weighted)",
+  "architecture": "BiLSTM(64, return_sequences=True) -> Dropout(0.3) -> BiLSTM(32) -> Dropout(0.3) -> Dense(32, relu) -> Dense(7, softmax)",
+  "input_shape": "(11 timesteps, 10 features) - pseudo-sequence via semantic feature grouping",
+  "feature_grouping_rationale": "CICIDS 2017 source data lacked Source IP / Destination IP / Timestamp columns (common in publicly redistributed mirrors), preventing genuine multi-flow temporal sequence construction. Flow features were grouped into 11 semantically coherent categories (packet size, timing, rate, header/protocol, etc.) and zero-padded to uniform width (10) to form a pseudo-sequence, a recognized approach in IDS literature when true temporal sequences are unavailable.",
+  "class_weights": {
+    "Bots": 6.83743842364532,
+    "Brute Force": 1.455933224719352,
+    "DDoS": 0.6657210208892472,
+    "DoS": 0.6661016776090752,
+    "Normal Traffic": 0.6665304370925884,
+    "Port Scanning": 0.6656734693877551,
+    "Web Attacks": 6.212952380952381
+  },
+  "test_accuracy": 0.9804721030042919,
+  "test_macro_f1": 0.9555122821128382,
+  "test_weighted_f1": 0.9809015236589288,
+  "classification_report_weighted": {
+    "Bots": {
+      "precision": 0.7374005305039788,
+      "recall": 0.952054794520548,
+      "f1-score": 0.8310911808669657,
+      "support": 292.0
+    },
+    "Brute Force": {
+      "precision": 0.9947604790419161,
+      "recall": 0.9686588921282799,
+      "f1-score": 0.981536189069424,
+      "support": 1372.0
+    },
+    "DDoS": {
+      "precision": 0.9983327775925308,
+      "recall": 0.998,
+      "f1-score": 0.9981663610601766,
+      "support": 3000.0
+    },
+    "DoS": {
+      "precision": 0.9870043318893702,
+      "recall": 0.9879919946631087,
+      "f1-score": 0.9874979163193865,
+      "support": 2998.0
+    },
+    "Normal Traffic": {
+      "precision": 0.975223675154852,
+      "recall": 0.9459279038718291,
+      "f1-score": 0.960352422907489,
+      "support": 2996.0
+    },
+    "Port Scanning": {
+      "precision": 0.9950199203187251,
+      "recall": 0.999,
+      "f1-score": 0.9970059880239521,
+      "support": 3000.0
+    },
+    "Web Attacks": {
+      "precision": 0.8968481375358166,
+      "recall": 0.9720496894409938,
+      "f1-score": 0.9329359165424739,
+      "support": 322.0
+    },
+    "accuracy": 0.9804721030042919,
+    "macro avg": {
+      "precision": 0.9406556931481699,
+      "recall": 0.9748118963749656,
+      "f1-score": 0.9555122821128382,
+      "support": 13980.0
+    },
+    "weighted avg": {
+      "precision": 0.9821019058613191,
+      "recall": 0.9804721030042919,
+      "f1-score": 0.9809015236589288,
+      "support": 13980.0
+    }
+  },
+  "classification_report_unweighted_comparison": {
+    "Bots": {
+      "precision": 0.8365384615384616,
+      "recall": 0.8938356164383562,
+      "f1-score": 0.8642384105960265,
+      "support": 292.0
+    },
+    "Brute Force": {
+      "precision": 0.9911569638909359,
+      "recall": 0.9803206997084548,
+      "f1-score": 0.9857090509344082,
+      "support": 1372.0
+    },
+    "DDoS": {
+      "precision": 0.9989993328885924,
+      "recall": 0.9983333333333333,
+      "f1-score": 0.9986662220740247,
+      "support": 3000.0
+    },
+    "DoS": {
+      "precision": 0.9886930495510475,
+      "recall": 0.9916611074049366,
+      "f1-score": 0.9901748542880933,
+      "support": 2998.0
+    },
+    "Normal Traffic": {
+      "precision": 0.9702042182792099,
+      "recall": 0.9672897196261683,
+      "f1-score": 0.968744776867792,
+      "support": 2996.0
+    },
+    "Port Scanning": {
+      "precision": 0.9966744263385434,
+      "recall": 0.999,
+      "f1-score": 0.9978358581654736,
+      "support": 3000.0
+    },
+    "Web Attacks": {
+      "precision": 0.9583333333333334,
+      "recall": 0.9285714285714286,
+      "f1-score": 0.943217665615142,
+      "support": 322.0
+    },
+    "accuracy": 0.9848354792560801,
+    "macro avg": {
+      "precision": 0.9629428265457319,
+      "recall": 0.9655731292975254,
+      "f1-score": 0.96408383407728,
+      "support": 13980.0
+    },
+    "weighted avg": {
+      "precision": 0.9850196564206645,
+      "recall": 0.9848354792560801,
+      "f1-score": 0.9848981636247658,
+      "support": 13980.0
+    }
+  },
+  "design_decision": "Class-weighted model selected over unweighted despite near-identical macro F1 (0.96 both), because it improves recall on minority attack classes (Bots: 0.89->0.95, Web Attacks: 0.93->0.97) at the cost of precision (more false positives on Normal Traffic). This reflects real-world IDS priorities where false negatives (missed attacks) carry substantially higher cost than false positives (extra analyst review), consistent with standard security operations practice.",
+  "confusion_note": "Primary confusion for Bots class is bidirectional with Normal Traffic (not with other attack types), consistent with botnet C2 traffic often mimicking low-and-slow benign traffic patterns to evade detection."
+}
