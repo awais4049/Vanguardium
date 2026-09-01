@@ -12,63 +12,108 @@
     "status_code",
     "path_depth",
     "num_query_params",
-    "num_headers",
     "special_char_ratio",
     "payload_entropy",
     "numeric_id_in_path",
-    "sql_keyword_count",
+    "has_auth_header",
     "method_GET",
     "method_POST",
     "method_PUT"
   ],
-  "test_weighted_f1": 0.9723004938015816,
-  "test_macro_f1": 0.9642298260137274,
-  "cv10_macro_f1_mean": 0.9673381099853531,
-  "cv10_macro_f1_std": 0.021372977089044513,
+  "num_classes": 8,
+  "classes": [
+    "benign",
+    "broken_auth",
+    "cmdi",
+    "idor",
+    "path_traversal",
+    "sqli",
+    "ssrf",
+    "xss"
+  ],
+  "train_samples": 3047,
+  "test_samples": 762,
+  "test_weighted_f1": 0.9612164359735359,
+  "test_macro_f1": 0.9291389218399004,
+  "cv10_macro_f1_mean": 0.963371281467975,
+  "cv10_macro_f1_std": 0.009542292630939548,
   "classification_report": {
     "benign": {
-      "precision": 0.9846938775510204,
-      "recall": 0.9747474747474747,
-      "f1-score": 0.9796954314720813,
-      "support": 198.0
+      "precision": 0.9911894273127754,
+      "recall": 0.9574468085106383,
+      "f1-score": 0.974025974025974,
+      "support": 470.0
     },
     "broken_auth": {
-      "precision": 0.972972972972973,
-      "recall": 0.972972972972973,
-      "f1-score": 0.972972972972973,
+      "precision": 0.9722222222222222,
+      "recall": 0.9459459459459459,
+      "f1-score": 0.958904109589041,
       "support": 37.0
     },
+    "cmdi": {
+      "precision": 0.8928571428571429,
+      "recall": 0.9803921568627451,
+      "f1-score": 0.9345794392523364,
+      "support": 51.0
+    },
     "idor": {
-      "precision": 1.0,
-      "recall": 0.96,
-      "f1-score": 0.9795918367346939,
-      "support": 25.0
+      "precision": 0.8846153846153846,
+      "recall": 0.9583333333333334,
+      "f1-score": 0.92,
+      "support": 24.0
+    },
+    "path_traversal": {
+      "precision": 0.979381443298969,
+      "recall": 1.0,
+      "f1-score": 0.9895833333333334,
+      "support": 95.0
     },
     "sqli": {
-      "precision": 0.8484848484848485,
-      "recall": 0.9333333333333333,
-      "f1-score": 0.8888888888888888,
+      "precision": 0.8666666666666667,
+      "recall": 0.8666666666666667,
+      "f1-score": 0.8666666666666667,
       "support": 30.0
+    },
+    "ssrf": {
+      "precision": 0.7931034482758621,
+      "recall": 0.92,
+      "f1-score": 0.8518518518518519,
+      "support": 25.0
     },
     "xss": {
-      "precision": 1.0,
+      "precision": 0.8823529411764706,
       "recall": 1.0,
-      "f1-score": 1.0,
+      "f1-score": 0.9375,
       "support": 30.0
     },
-    "accuracy": 0.971875,
+    "accuracy": 0.9606299212598425,
     "macro avg": {
-      "precision": 0.9612303398017683,
-      "recall": 0.9682107562107563,
-      "f1-score": 0.9642298260137274,
-      "support": 320.0
+      "precision": 0.9077985845531866,
+      "recall": 0.9535981139149161,
+      "f1-score": 0.9291389218399004,
+      "support": 762.0
     },
     "weighted avg": {
-      "precision": 0.9731997912801484,
-      "recall": 0.971875,
-      "f1-score": 0.9723004938015816,
-      "support": 320.0
+      "precision": 0.963172110408534,
+      "recall": 0.9606299212598425,
+      "f1-score": 0.9612164359735359,
+      "support": 762.0
     }
   },
-  "notes": "Heuristic-source features (has_sql_keywords, has_script_tags, is_cross_owner_basket_access, is_admin_path, has_auth_header) excluded to avoid label leakage. sql_keyword_count engineered as independent continuous signal. Hyperparameter tuning attempted (RandomizedSearchCV) but did not improve on manual params beyond CV noise (10-fold std ~0.021)."
+  "feature_importance_top15": {
+    "numeric_id_in_path": 0.5603076219558716,
+    "path_depth": 0.17133274674415588,
+    "num_query_params": 0.11944051086902618,
+    "response_size": 0.040516480803489685,
+    "status_code": 0.023777971044182777,
+    "special_char_ratio": 0.02373693138360977,
+    "payload_entropy": 0.022542329505085945,
+    "duration_ms": 0.018139274790883064,
+    "body_length": 0.011619187891483307,
+    "has_auth_header": 0.008586922660470009,
+    "method_GET": 0.0,
+    "method_POST": 0.0,
+    "method_PUT": 0.0
+  },
+  "notes": "Non-leaky design: all label-signature features (_sqli_match, _xss_match, _is_admin_path, _is_cross_owner_basket_access, _cmdi_match, _path_traversal_match, _ssrf_match) dropped before training. Model uses only generic structural/statistical features. Class weights applied via inverse-frequency sample weighting. 'num_headers' additionally excluded from training (kept in CSV): confirmed via groupby inspection to separate traffic-collection method (Chrome for benign ~10.5 headers vs python-requests for ALL attack classes ~6.0-8.2 headers) rather than attack content, a methodology artifact of this dataset's collection process."
 }
