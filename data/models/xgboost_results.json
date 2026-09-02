@@ -33,84 +33,84 @@
   ],
   "train_samples": 3047,
   "test_samples": 762,
-  "test_weighted_f1": 0.9612164359735359,
-  "test_macro_f1": 0.9291389218399004,
-  "cv10_macro_f1_mean": 0.963371281467975,
-  "cv10_macro_f1_std": 0.009542292630939548,
+  "test_weighted_f1": 0.9654792616118518,
+  "test_macro_f1": 0.9408968504220909,
+  "cv10_macro_f1_mean": 0.9663512723262615,
+  "cv10_macro_f1_std": 0.010050991771996575,
   "classification_report": {
     "benign": {
-      "precision": 0.9911894273127754,
-      "recall": 0.9574468085106383,
-      "f1-score": 0.974025974025974,
-      "support": 470.0
+      "precision": 0.9977578475336323,
+      "recall": 0.9528907922912205,
+      "f1-score": 0.9748083242059146,
+      "support": 467.0
     },
     "broken_auth": {
-      "precision": 0.9722222222222222,
-      "recall": 0.9459459459459459,
+      "precision": 0.9459459459459459,
+      "recall": 0.9722222222222222,
       "f1-score": 0.958904109589041,
-      "support": 37.0
+      "support": 36.0
     },
     "cmdi": {
-      "precision": 0.8928571428571429,
+      "precision": 0.8771929824561403,
       "recall": 0.9803921568627451,
-      "f1-score": 0.9345794392523364,
+      "f1-score": 0.9259259259259259,
       "support": 51.0
     },
     "idor": {
-      "precision": 0.8846153846153846,
-      "recall": 0.9583333333333334,
-      "f1-score": 0.92,
+      "precision": 0.8571428571428571,
+      "recall": 1.0,
+      "f1-score": 0.9230769230769231,
       "support": 24.0
     },
     "path_traversal": {
-      "precision": 0.979381443298969,
+      "precision": 1.0,
       "recall": 1.0,
-      "f1-score": 0.9895833333333334,
+      "f1-score": 1.0,
       "support": 95.0
     },
     "sqli": {
-      "precision": 0.8666666666666667,
-      "recall": 0.8666666666666667,
-      "f1-score": 0.8666666666666667,
-      "support": 30.0
+      "precision": 0.8055555555555556,
+      "recall": 0.9354838709677419,
+      "f1-score": 0.8656716417910447,
+      "support": 31.0
     },
     "ssrf": {
-      "precision": 0.7931034482758621,
-      "recall": 0.92,
-      "f1-score": 0.8518518518518519,
+      "precision": 0.8333333333333334,
+      "recall": 1.0,
+      "f1-score": 0.9090909090909091,
       "support": 25.0
     },
     "xss": {
-      "precision": 0.8823529411764706,
-      "recall": 1.0,
-      "f1-score": 0.9375,
-      "support": 30.0
+      "precision": 0.9696969696969697,
+      "recall": 0.9696969696969697,
+      "f1-score": 0.9696969696969697,
+      "support": 33.0
     },
-    "accuracy": 0.9606299212598425,
+    "accuracy": 0.9645669291338582,
     "macro avg": {
-      "precision": 0.9077985845531866,
-      "recall": 0.9535981139149161,
-      "f1-score": 0.9291389218399004,
+      "precision": 0.9108281864580543,
+      "recall": 0.9763357515051124,
+      "f1-score": 0.9408968504220909,
       "support": 762.0
     },
     "weighted avg": {
-      "precision": 0.963172110408534,
-      "recall": 0.9606299212598425,
-      "f1-score": 0.9612164359735359,
+      "precision": 0.9686624607408237,
+      "recall": 0.9645669291338582,
+      "f1-score": 0.9654792616118518,
       "support": 762.0
     }
   },
   "feature_importance_top15": {
-    "numeric_id_in_path": 0.5603076219558716,
-    "path_depth": 0.17133274674415588,
-    "num_query_params": 0.11944051086902618,
-    "response_size": 0.040516480803489685,
-    "status_code": 0.023777971044182777,
-    "special_char_ratio": 0.02373693138360977,
-    "payload_entropy": 0.022542329505085945,
-    "duration_ms": 0.018139274790883064,
-    "body_length": 0.011619187891483307,
-    "has_auth_header": 0.008586922660470009,
+    "numeric_id_in_path": 0.5667210221290588,
+    "path_depth": 0.16003616154193878,
+    "num_query_params": 0.09351497888565063,
+    "response_size": 0.05182882770895958,
+    "special_char_ratio": 0.024141594767570496,
+    "status_code": 0.023236336186528206,
+    "payload_entropy": 0.02307676151394844,
+    "duration_ms": 0.022030021995306015,
+    "body_length": 0.01981796696782112,
+    "has_auth_header": 0.015596305020153522,
     "method_GET": 0.0,
     "method_POST": 0.0,
     "method_PUT": 0.0

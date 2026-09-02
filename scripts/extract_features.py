@@ -40,8 +40,8 @@ import re
 import math
 import os
 import base64
-import urllib.parse
 from collections import Counter
+from urllib.parse import unquote_plus
 
 import pandas as pd
 
@@ -69,7 +69,7 @@ LOGIN_PATH_PATTERN = re.compile(r"^/rest/user/login$", re.IGNORECASE)
 
 # --- new: command injection, path traversal, SSRF ---
 
-CMDI_ENDPOINT_PATTERN = re.compile(r"^/vulnerabilities/exec/", re.IGNORECASE)
+CMDI_ENDPOINT_PATTERN = re.compile(r"^/vulnerabilities/exec/?$", re.IGNORECASE)
 # operator immediately followed by a common recon/enumeration command —
 # requires BOTH an operator and a command word, not just a bare ';' or '|',
 # to avoid flagging incidental special characters as command injection.
@@ -80,7 +80,7 @@ CMDI_PATTERN = re.compile(
     re.IGNORECASE,
 )
 
-FI_ENDPOINT_PATTERN = re.compile(r"^/vulnerabilities/fi/", re.IGNORECASE)
+FI_ENDPOINT_PATTERN = re.compile(r"^/vulnerabilities/fi/?(\?|$)", re.IGNORECASE)
 URL_SCHEME_PATTERN = re.compile(r"^(https?|gopher|ftp|dict)://", re.IGNORECASE)
 PATH_TRAVERSAL_PATTERN = re.compile(
     r"(\.\.[/\\]|%2e%2e|\.\.%2f|%252e%252e|\.\.\.\.//"
@@ -89,7 +89,7 @@ PATH_TRAVERSAL_PATTERN = re.compile(
     re.IGNORECASE,
 )
 
-SSRF_ENDPOINT_PATTERN = re.compile(r"^/profile/image/url", re.IGNORECASE)
+SSRF_ENDPOINT_PATTERN = re.compile(r"^/profile/image/url$", re.IGNORECASE)
 SSRF_INTERNAL_TARGET_PATTERN = re.compile(
     r"(https?://(127\.|10\.|172\.(1[6-9]|2\d|3[01])\.|192\.168\.|169\.254\."
     r"|localhost|juice-shop|dvwa|vanguardium_postgres|0x7f|2130706433|0177)"
@@ -163,9 +163,8 @@ def is_ssrf_signal(path: str, query_params: dict, combined_text: str) -> bool:
     """True for Juice Shop's /profile/image/url with an internal/non-http(s)
     target, OR DVWA's file-inclusion module used in RFI/SSRF mode (page=
     a URL rather than a traversal path)."""
-    decoded_text = urllib.parse.unquote_plus(combined_text)
     if SSRF_ENDPOINT_PATTERN.search(path):
-        return bool(SSRF_INTERNAL_TARGET_PATTERN.search(decoded_text))
+        return bool(SSRF_INTERNAL_TARGET_PATTERN.search(combined_text))
     if FI_ENDPOINT_PATTERN.search(path):
         page_val = str(query_params.get("page", ""))
         return bool(URL_SCHEME_PATTERN.match(page_val))
@@ -182,22 +181,17 @@ def is_path_traversal_signal(path: str, query_params: dict, combined_text: str) 
     page_val = str(query_params.get("page", ""))
     if URL_SCHEME_PATTERN.match(page_val):
         return False
-    decoded_text = urllib.parse.unquote_plus(combined_text)
     return bool(PATH_TRAVERSAL_PATTERN.search(page_val)) or bool(
-        PATH_TRAVERSAL_PATTERN.search(decoded_text)
+        PATH_TRAVERSAL_PATTERN.search(combined_text)
     )
 
 
 def is_cmdi_signal(path: str, combined_text: str) -> bool:
     """True for DVWA's command-exec module with an operator+command
-    payload (e.g. '127.0.0.1;whoami'). Body arrives form-urlencoded
-    (requests library encodes it), so operators like '|' show up as
-    '%7C' — must decode before matching or the literal-character
-    pattern silently never fires."""
+    payload (e.g. '127.0.0.1;whoami')."""
     if not CMDI_ENDPOINT_PATTERN.search(path):
         return False
-    decoded_text = urllib.parse.unquote_plus(combined_text)
-    return bool(CMDI_PATTERN.search(decoded_text))
+    return bool(CMDI_PATTERN.search(combined_text))
 
 
 def extract_features(flow: dict) -> dict:
@@ -211,7 +205,8 @@ def extract_features(flow: dict) -> dict:
     duration_ms = flow.get("duration_ms", 0)
 
     host = str(headers.get("Host", "")).lower()
-    combined_text = f"{path} {json.dumps(query_params)} {body}"
+    decoded_body = unquote_plus(body)
+    combined_text = f"{path} {json.dumps(query_params)} {decoded_body}"
 
     # IDOR ownership check: compare basket id in URL vs. basket id claimed
     # in the caller's own JWT. Mismatch = requesting someone else's resource.
@@ -319,6 +314,7 @@ def main():
                 continue
             try:
                 feats = extract_features(flow)
+                feats["_capture_line_id"] = i
                 if feats["_host"] in NOISE_HOSTS:
                     continue  # drop browser/OS telemetry - not target-app traffic
                 feats["label"] = label_flow(feats)
