@@ -193,20 +193,41 @@ def is_cmdi_signal(path: str, combined_text: str) -> bool:
         return False
     return bool(CMDI_PATTERN.search(combined_text))
 
-
-def extract_features(flow: dict) -> dict:
-    method = flow.get("method", "")
+def build_combined_text(flow: dict) -> dict:
+    """Single source of truth for decoding + combining request text.
+    Used by extract_features() (for XGBoost's engineered stats) AND by
+    the CNN's raw-text pipeline (for character-level input) so both
+    models see byte-for-byte identical decoded text. Do not duplicate
+    this decoding logic anywhere else."""
     path = unquote_plus(flow.get("path", "") or "")
     query_params = flow.get("query_params", {}) or {}
     headers = flow.get("headers", {}) or {}
     body = flow.get("body", "") or ""
+    decoded_body = unquote_plus(body)
+    combined_text = f"{path} {json.dumps(query_params)} {decoded_body}"
+    return {
+        "path": path,
+        "query_params": query_params,
+        "headers": headers,
+        "body": body,
+        "decoded_body": decoded_body,
+        "combined_text": combined_text,
+    }
+
+def extract_features(flow: dict) -> dict:
+    method = flow.get("method", "")
     status_code = flow.get("status_code", 0)
     response_size = flow.get("response_size", 0)
     duration_ms = flow.get("duration_ms", 0)
 
+    parsed = build_combined_text(flow)
+    path = parsed["path"]
+    query_params = parsed["query_params"]
+    headers = parsed["headers"]
+    body = parsed["body"]
+    combined_text = parsed["combined_text"]
+
     host = str(headers.get("Host", "")).lower()
-    decoded_body = unquote_plus(body)
-    combined_text = f"{path} {json.dumps(query_params)} {decoded_body}"
 
     # IDOR ownership check: compare basket id in URL vs. basket id claimed
     # in the caller's own JWT. Mismatch = requesting someone else's resource.
