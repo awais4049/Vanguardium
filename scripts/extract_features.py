@@ -196,7 +196,7 @@ def is_cmdi_signal(path: str, combined_text: str) -> bool:
 
 def extract_features(flow: dict) -> dict:
     method = flow.get("method", "")
-    path = flow.get("path", "")
+    path = unquote_plus(flow.get("path", "") or "")
     query_params = flow.get("query_params", {}) or {}
     headers = flow.get("headers", {}) or {}
     body = flow.get("body", "") or ""
