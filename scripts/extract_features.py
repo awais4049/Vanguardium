@@ -263,6 +263,14 @@ def extract_features(flow: dict) -> dict:
             "authorization" in {k.lower() for k in headers.keys()}
             or "token" in str(headers.get("Cookie", "")).lower()
         ),
+        # CNN raw-text input: decoded path + query_params + body, identical
+        # to what combined_text is for XGBoost's engineered stats above.
+        # NOT underscore-prefixed (it's a real input feature, not a
+        # label-derivation signal) but NOT a numeric/statistical feature
+        # either — XGBoost/BiLSTM training scripts must continue to select
+        # features by explicit column list, not "all non-underscore columns",
+        # or this string column will break them.
+        "combined_text": combined_text,
         # ---- LABEL-ONLY fields below (underscore prefix). DROP before training. ----
         "_path": path,
         "_host": host,
