@@ -1,0 +1,143 @@
+{
+  "model": "CNN (char-level, Conv1D)",
+  "architecture": {
+    "embedding_dim": 32,
+    "conv_blocks": [
+      {
+        "filters": 64,
+        "kernel_size": 5,
+        "pool": "MaxPooling1D(2)"
+      },
+      {
+        "filters": 128,
+        "kernel_size": 3,
+        "pool": "GlobalMaxPooling1D"
+      }
+    ],
+    "dense_head": [
+      64
+    ],
+    "dropout": {
+      "spatial": 0.2,
+      "dense": 0.5
+    }
+  },
+  "vocab_size": 97,
+  "max_len": 256,
+  "num_classes": 8,
+  "classes": [
+    "benign",
+    "broken_auth",
+    "cmdi",
+    "idor",
+    "path_traversal",
+    "sqli",
+    "ssrf",
+    "xss"
+  ],
+  "train_samples": 2589,
+  "val_samples": 458,
+  "test_samples": 762,
+  "epochs_trained": 35,
+  "test_weighted_f1": 0.9960446992717373,
+  "test_macro_f1": 0.9932807071013634,
+  "classification_report": {
+    "benign": {
+      "precision": 0.9956989247311828,
+      "recall": 0.9978448275862069,
+      "f1-score": 0.9967707212055974,
+      "support": 464.0
+    },
+    "broken_auth": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1-score": 1.0,
+      "support": 36.0
+    },
+    "cmdi": {
+      "precision": 0.9807692307692307,
+      "recall": 1.0,
+      "f1-score": 0.9902912621359223,
+      "support": 51.0
+    },
+    "idor": {
+      "precision": 1.0,
+      "recall": 0.96,
+      "f1-score": 0.9795918367346939,
+      "support": 25.0
+    },
+    "path_traversal": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1-score": 1.0,
+      "support": 95.0
+    },
+    "sqli": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1-score": 1.0,
+      "support": 33.0
+    },
+    "ssrf": {
+      "precision": 1.0,
+      "recall": 0.96,
+      "f1-score": 0.9795918367346939,
+      "support": 25.0
+    },
+    "xss": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1-score": 1.0,
+      "support": 33.0
+    },
+    "accuracy": 0.9960629921259843,
+    "macro avg": {
+      "precision": 0.9970585194375516,
+      "recall": 0.9897306034482758,
+      "f1-score": 0.9932807071013634,
+      "support": 762.0
+    },
+    "weighted avg": {
+      "precision": 0.9960938738116791,
+      "recall": 0.9960629921259843,
+      "f1-score": 0.9960446992717373,
+      "support": 762.0
+    }
+  },
+  "class_weights": {
+    "0": 0.20508555133079848,
+    "1": 2.6310975609756095,
+    "2": 1.8815406976744187,
+    "3": 3.8990963855421685,
+    "4": 0.9988425925925926,
+    "5": 2.8639380530973453,
+    "6": 3.8526785714285716,
+    "7": 2.8895089285714284
+  },
+  "notes": "Test split IDENTICAL to train_xgboost.py's (same random_state=42, test_size=0.2, stratify=label, unmodified row order) - verified matching test-set label distribution before training. Trained on combined_text (decoded path+query_params+body), same text XGBoost's engineered stats are derived from (extract_features.py's build_combined_text()). KNOWN LIMITATION: several classes are defined by a fixed vulnerable endpoint string (cmdi, path_traversal, ssrf); the CNN may partly learn endpoint-matching as a shortcut rather than injected-payload syntax - see module docstring. ABLATION FINDING (payload-only, no endpoint path): test macro F1 dropped to 0.8121 (from 0.9933) and weighted F1 to 0.6445 (from 0.9960) when path is stripped from combined_text. cmdi/path_traversal/ssrf/sqli/xss stayed strong (F1 >= 0.93) without path, showing they carry genuine payload-level signal, not just endpoint-matching. benign/idor did NOT hold up (idor precision 0.07, benign recall 0.31) - traced to a hard information collision, not undertraining: 1602/3809 rows (42%) share the identical stripped text '{} ' (empty query_params + empty body), comprising 1479 benign rows and all 123 idor rows. No model can separate identical input strings into different classes; IDOR is defined via a path segment (/basket/<id>) that literally does not exist in query_params/body. CONCLUSION: combined_text (with path) is the correct design - path is not an illegitimate shortcut, it is required information for IDOR specifically and contributes meaningfully elsewhere. REMAINING LIMITATION: cmdi and the path_traversal/ssrf classes tied to DVWA/Juice Shop's specific local endpoints (/vulnerabilities/exec/, /vulnerabilities/fi/, /profile/image/url) may not generalize to a different target app's endpoint layout, though payload-only signal (0.93-1.00 F1) suggests partial generalization is plausible. See scripts/ablation_cnn_payload_only.py for the diagnostic.",
+  "ablation_payload_only": {
+    "description": "Same architecture/split, trained on query_params+body only (path stripped)",
+    "test_macro_f1": 0.8121,
+    "test_weighted_f1": 0.6445,
+    "per_class_f1": {
+      "benign": 0.47,
+      "broken_auth": 0.99,
+      "cmdi": 0.93,
+      "idor": 0.14,
+      "path_traversal": 1.0,
+      "sqli": 0.97,
+      "ssrf": 1.0,
+      "xss": 1.0
+    },
+    "collision_analysis": {
+      "distinct_colliding_texts": 1,
+      "rows_affected": 1602,
+      "total_rows": 3809,
+      "colliding_text": "{} ",
+      "labels_in_collision": {
+        "benign": 1479,
+        "idor": 123
+      }
+    }
+  }
+}

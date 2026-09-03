@@ -123,21 +123,127 @@ def load_split_and_encode():
         "df": df,
     }
 
+def build_model(vocab_size: int, max_len: int, num_classes: int):
+    from tensorflow.keras import layers, models
+
+    model = models.Sequential([
+        layers.Input(shape=(max_len,)),
+        layers.Embedding(input_dim=vocab_size, output_dim=32),
+        layers.SpatialDropout1D(0.2),
+        layers.Conv1D(filters=64, kernel_size=5, activation="relu"),
+        layers.MaxPooling1D(pool_size=2),
+        layers.Conv1D(filters=128, kernel_size=3, activation="relu"),
+        layers.GlobalMaxPooling1D(),
+        layers.Dense(64, activation="relu"),
+        layers.Dropout(0.5),
+        layers.Dense(num_classes, activation="softmax"),
+    ])
+    model.compile(
+        optimizer="adam",
+        loss="sparse_categorical_crossentropy",
+        metrics=["accuracy"],
+    )
+    return model
+
+
+def compute_class_weights(y_train: np.ndarray, num_classes: int) -> dict:
+    """Inverse-frequency class weighting, same rationale as XGBoost/BiLSTM:
+    false negatives (missed attacks) costlier than false positives in IDS."""
+    counts = np.bincount(y_train, minlength=num_classes)
+    total = len(y_train)
+    weights = total / (num_classes * counts.astype(float))
+    return {i: float(w) for i, w in enumerate(weights)}
 
 def main():
     data = load_split_and_encode()
+    le = data["label_encoder"]
+    num_classes = len(le.classes_)
+
     print(f"Vocab size: {VOCAB_SIZE}, max_len: {MAX_LEN}")
-    print(f"Classes ({len(data['label_encoder'].classes_)}): {list(data['label_encoder'].classes_)}")
+    print(f"Classes ({num_classes}): {list(le.classes_)}")
     print(f"Train: {data['X_train'].shape}, Val: {data['X_val'].shape}, Test: {data['X_test'].shape}")
-    print(f"Train label dist: {np.bincount(data['y_train'])}")
-    print(f"Val label dist:   {np.bincount(data['y_val'])}")
-    print(f"Test label dist:  {np.bincount(data['y_test'])}")
 
-    # -- verify test split matches XGBoost's exactly --
-    expected_test_size = round(len(data["df"]) * TEST_RATIO)
-    print(f"\nTest set size: {len(data['idx_test'])} (expected ~{expected_test_size})")
+    model = build_model(VOCAB_SIZE, MAX_LEN, num_classes)
+    model.summary()
 
-    save_vocab()
+    class_weights = compute_class_weights(data["y_train"], num_classes)
+    print(f"\nClass weights: {class_weights}")
+
+    from tensorflow.keras.callbacks import EarlyStopping
+    early_stop = EarlyStopping(
+        monitor="val_loss", patience=5, restore_best_weights=True
+    )
+
+    history = model.fit(
+        data["X_train"], data["y_train"],
+        validation_data=(data["X_val"], data["y_val"]),
+        epochs=100,
+        batch_size=32,
+        class_weight=class_weights,
+        callbacks=[early_stop],
+        verbose=2,
+    )
+
+    # -- evaluate on the XGBoost-aligned held-out test set --
+    from sklearn.metrics import classification_report, f1_score
+
+    y_pred_proba = model.predict(data["X_test"])
+    y_pred = np.argmax(y_pred_proba, axis=1)
+
+    report = classification_report(
+        data["y_test"], y_pred, target_names=le.classes_, output_dict=True
+    )
+    macro_f1 = f1_score(data["y_test"], y_pred, average="macro")
+    weighted_f1 = f1_score(data["y_test"], y_pred, average="weighted")
+
+    print(f"\nTest macro F1: {macro_f1:.4f}")
+    print(f"Test weighted F1: {weighted_f1:.4f}")
+    print(classification_report(data["y_test"], y_pred, target_names=le.classes_))
+
+    # -- save artifacts --
+    os.makedirs(MODELS_DIR, exist_ok=True)
+    model.save(os.path.join(MODELS_DIR, "cnn_model.keras"))
+
+    results = {
+        "model": "CNN (char-level, Conv1D)",
+        "architecture": {
+            "embedding_dim": 32,
+            "conv_blocks": [
+                {"filters": 64, "kernel_size": 5, "pool": "MaxPooling1D(2)"},
+                {"filters": 128, "kernel_size": 3, "pool": "GlobalMaxPooling1D"},
+            ],
+            "dense_head": [64],
+            "dropout": {"spatial": 0.2, "dense": 0.5},
+        },
+        "vocab_size": VOCAB_SIZE,
+        "max_len": MAX_LEN,
+        "num_classes": num_classes,
+        "classes": list(le.classes_),
+        "train_samples": int(data["X_train"].shape[0]),
+        "val_samples": int(data["X_val"].shape[0]),
+        "test_samples": int(data["X_test"].shape[0]),
+        "epochs_trained": len(history.history["loss"]),
+        "test_weighted_f1": float(weighted_f1),
+        "test_macro_f1": float(macro_f1),
+        "classification_report": report,
+        "class_weights": class_weights,
+        "notes": (
+            "Test split IDENTICAL to train_xgboost.py's (same random_state=42, "
+            "test_size=0.2, stratify=label, unmodified row order) - verified "
+            "matching test-set label distribution before training. Trained on "
+            "combined_text (decoded path+query_params+body), same text XGBoost's "
+            "engineered stats are derived from (extract_features.py's "
+            "build_combined_text()). KNOWN LIMITATION: several classes are "
+            "defined by a fixed vulnerable endpoint string (cmdi, path_traversal, "
+            "ssrf); the CNN may partly learn endpoint-matching as a shortcut "
+            "rather than injected-payload syntax - see module docstring."
+        ),
+    }
+    with open(os.path.join(MODELS_DIR, "cnn_results.json"), "w") as f:
+        json.dump(results, f, indent=2)
+
+    print(f"\nSaved model to {MODELS_DIR}/cnn_model.keras")
+    print(f"Saved results to {MODELS_DIR}/cnn_results.json")
 
 
 if __name__ == "__main__":
